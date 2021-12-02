@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import static com.bolsheviks.APMS.security.SecurityFilter.USER_UUID;
@@ -32,6 +34,29 @@ public class UserController {
         return userRepository.findAllByIdNotOrderByLastName(userId,
                         Pageable.ofSize(USER_PAGE_SIZE).withPage(page))
                 .stream().map(BaseEntity::getId).toList();
+    }
+
+    @GetMapping("/all/page_count")
+    public int getPageCount() {
+        int userCount = userRepository.countAllBy();
+        return userCount / USER_PAGE_SIZE
+                + (userCount % USER_PAGE_SIZE == 0 ? 0 : 1);
+    }
+
+    @GetMapping("/find")
+    public List<UUID> find(@RequestParam String request) {
+        if (request.length() == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "request must be not empty");
+        }
+        List<String> s = Arrays.stream(request.split(" ", -1))
+                .map(this::setNeededCase).toList();
+        if (s.size() == 1) {
+            return userRepository.find(s.get(0)).stream().map(BaseEntity::getId).toList();
+        }
+        if (s.size() == 2) {
+            return userRepository.find(s.get(0), s.get(1)).stream().map(BaseEntity::getId).toList();
+        }
+        return userRepository.find(s.get(0), s.get(1), s.get(2)).stream().map(BaseEntity::getId).toList();
     }
 
     @GetMapping("/self")
@@ -64,5 +89,11 @@ public class UserController {
                 new ResponseStatusException(HttpStatus.NOT_FOUND));
         user.setRole(userDto.role);
         userRepository.save(user);
+    }
+
+    private String setNeededCase(String s) {
+        StringBuilder sb = new StringBuilder(s.toLowerCase());
+        sb.setCharAt(0, Character.toUpperCase(s.charAt(0)));
+        return sb.toString();
     }
 }

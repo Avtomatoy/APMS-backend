@@ -26,7 +26,9 @@ public class MockService {
 
     private void createMocks() {
         createProjectProposalMocks();
-        createAdmin();
+        if (userRepository.countByRole(Role.BUSINESS_ADMINISTRATOR) == 0) {
+            createAdmin();
+        }
     }
 
     private void createAdmin() {
